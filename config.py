@@ -5,7 +5,7 @@ LOW_FREQ_THRESHOLD = 250     # Bass/sub-bass: 0-250 Hz
 HIGH_FREQ_THRESHOLD = 4000   # Highs: 4000+ Hz
 # Mid frequencies are between LOW_FREQ_THRESHOLD and HIGH_FREQ_THRESHOLD
 
-# Music sync thresholds
+# Audio sync thresholds (for future audio integration)
 HIGH_FREQ_STRONG_THRESHOLD = 70  # Strong high frequency moments
 BASS_DROP_THRESHOLD = 80         # Heavy bass moments
 
@@ -14,13 +14,13 @@ MIN_FADE_MULTIPLIER = 0.1
 MAX_FADE_MULTIPLIER = 2.1
 BASE_FADE_PROBABILITY_BOOST = 0.01
 
-# Duration multipliers for music sync
+# Duration multipliers for audio sync
 MIN_DURATION_MULTIPLIER = 0.5
 MAX_DURATION_MULTIPLIER = 2.0
 MIN_BLACK_DURATION_MULTIPLIER = 0.8
 MAX_BLACK_DURATION_MULTIPLIER = 1.2
 
-# Fade style settings for dramatic music sync
+# Fade style settings for dramatic transitions
 QUICK_BLINK_FADE_DURATION = 0.15    # Very fast fade for dramatic flashes
 QUICK_BLINK_BLACK_DURATION = 0.1    # Brief black moment
 LONG_FADE_DURATION_MULTIPLIER = 1.8  # Longer, cinematic fades
@@ -31,7 +31,7 @@ HIGH_FREQ_BLINK_THRESHOLD = 75      # High freq above this triggers quick blinks
 BASS_DROP_LONG_FADE_THRESHOLD = 85  # Heavy bass triggers long fades
 MID_FREQ_VARIATION_THRESHOLD = 15   # Mid freq changes trigger style mixing
 
-# Scroll speed multipliers for music sync
+# Scroll speed multipliers for audio sync
 MIN_SCROLL_MULTIPLIER = 0.5
 MAX_SCROLL_MULTIPLIER = 1.5
 MIN_SCROLL_SPEED = 5  # Minimum scroll speed in px/sec

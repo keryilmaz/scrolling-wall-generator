@@ -1,6 +1,6 @@
 # Immersive Room 🎬
 
-A Gradio-based application for creating mesmerizing scrolling video walls with frequency-synced music and dynamic image transitions. Transform your images into immersive audio-visual experiences perfect for ambient displays, video art, or showcasing collections.
+A sophisticated Gradio-based application for creating cinematic scrolling video walls with professional-grade dynamic transitions. Transform your image collections into mesmerizing visual experiences with smooth fades, dynamic appearance effects, and customizable cinematic timing.
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![Gradio](https://img.shields.io/badge/gradio-5.33+-orange.svg)
@@ -8,16 +8,24 @@ A Gradio-based application for creating mesmerizing scrolling video walls with f
 
 ## Features ✨
 
-### Visual Effects
+### 🎬 Cinematic Transitions
+- **Dynamic Image Appearance**: Images smoothly fade in/out with customizable patterns
+- **Professional Fade Styles**: Blend, fade-to-black, and flash effects with adjustable weights
+- **Cinematic Timing**: Separate controls for opacity fading and image count transitions
+- **Easing Curves**: Multiple easing options (ease-in-out, ease-in, ease-out, linear)
+- **Appearance Patterns**: From center-outward to completely random image appearance
+- **Transition Smoothness**: Adjustable individual cell fade duration for buttery smooth effects
+
+### 🎯 Visual Effects  
 - **Smooth Scrolling**: Pixel-perfect smooth scrolling in both horizontal and vertical directions
 - **Infinite Loop**: Seamless infinite scrolling without glitches
-- **Dynamic Fade Effects**: Random fade transitions between images
+- **Duration Randomness**: Organic timing variations for natural-looking transitions
+- **Smart Image Selection**: Prevents duplicate images from appearing simultaneously
 - **Customizable Grid**: Adjustable rows, columns, and padding
 - **Quality Presets**: Low, Medium, High, and Ultra quality output
 - **Real-time Preview**: See a preview frame before generating the full video
-- **Pure Black Background**: Professional look with true black background
 
-### 🎵 Music Synchronization
+### 🎵 Audio Integration (Prepared for Future)
 - **Frequency Analysis**: Advanced spectral analysis of audio files
 - **Smart Audio Processing**: Separate audio processing with caching for efficiency
 - **Frequency-Responsive Effects**: 

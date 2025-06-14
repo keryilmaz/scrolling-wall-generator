@@ -14,8 +14,8 @@ video_generator = VideoGenerator()
 
 # Create Gradio interface
 with gr.Blocks(title="Immersive Room") as demo:
-    gr.Markdown("# 🎬 Immersive Room - Visual Generator")
-    gr.Markdown("Transform your images into mesmerizing scrolling wall videos with dynamic fade transitions")
+    gr.Markdown("# 🎬 Immersive Room - Cinematic Transitions")
+    gr.Markdown("Transform your images into mesmerizing scrolling wall videos with professional-grade dynamic transitions")
     
     with gr.Row():
         with gr.Column(scale=1):

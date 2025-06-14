@@ -10,13 +10,13 @@ The Immersive Room application has been refactored into a modular architecture w
 Contains all configuration constants and default values.
 
 **Key Constants:**
-- Audio frequency thresholds (LOW_FREQ_THRESHOLD, HIGH_FREQ_THRESHOLD)
-- Music sync parameters (fade multipliers, duration multipliers)
+- Audio frequency thresholds (for future audio features)
+- Transition timing parameters (fade multipliers, duration multipliers)
 - Default UI values (video dimensions, animation settings)
 - Quality bitrate mappings
 
 ### 2. `audio_processor.py`
-Handles all audio processing and frequency analysis.
+Handles all audio processing and frequency analysis (prepared for future audio integration).
 
 **Classes:**
 - `AudioProcessor`: Core audio processing functionality
