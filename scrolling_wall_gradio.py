@@ -6,6 +6,15 @@ import gradio as gr
 from moviepy import VideoClip
 import tempfile
 
+# Audio processing for music sync
+try:
+    import librosa
+    import soundfile as sf
+    AUDIO_SUPPORT = True
+except ImportError:
+    AUDIO_SUPPORT = False
+    print("Warning: librosa not installed. Music sync features disabled.")
+
 def load_and_prepare_images(image_folder, tile_width, tile_height):
     """Load and resize all images from the folder"""
     if not os.path.exists(image_folder):
@@ -27,6 +36,37 @@ def load_and_prepare_images(image_folder, tile_width, tile_height):
             print(f"Couldn't load {os.path.basename(img_path)}: {str(e)}")
     
     return images
+
+def analyze_audio_beats(audio_file, fps=30, duration=10):
+    """Analyze audio file for beat detection and tempo"""
+    if not AUDIO_SUPPORT or not audio_file:
+        return None, None, None
+    
+    try:
+        print(f"✓ Analyzing audio: {audio_file}")
+        
+        # Load audio file
+        y, sr = librosa.load(audio_file, duration=duration)
+        
+        # Beat detection
+        tempo, beats = librosa.beat.beat_track(y=y, sr=sr, units='time')
+        
+        # Create beat timing array for the video duration
+        total_frames = int(duration * fps)
+        beat_frames = (beats * fps).astype(int)
+        
+        # Create beat mask (True where beats occur)
+        beat_mask = np.zeros(total_frames, dtype=bool)
+        valid_beats = beat_frames[beat_frames < total_frames]
+        beat_mask[valid_beats] = True
+        
+        print(f"✓ Detected tempo: {tempo:.1f} BPM, {len(beats)} beats")
+        
+        return tempo, beat_mask, beats
+        
+    except Exception as e:
+        print(f"❌ Audio analysis failed: {e}")
+        return None, None, None
 
 def generate_preview(image_folder, video_width, video_height, images_per_row, rows, padding):
     """Generate a preview frame"""
@@ -54,7 +94,7 @@ def generate_preview(image_folder, video_width, video_height, images_per_row, ro
 
 def generate_video(image_folder, video_width, video_height, images_per_row, rows, padding,
                   scroll_speed, scroll_direction, fade_probability, fade_randomness, fade_duration, 
-                  black_duration, duration, fps, quality):
+                  black_duration, duration, fps, quality, audio_file=None, music_sync_fade=False, music_sync_scroll=False):
     """Generate the scrolling wall video"""
     try:
         # Input validation
@@ -80,6 +120,18 @@ def generate_video(image_folder, video_width, video_height, images_per_row, rows
             return None, f"❌ No images found in folder: {image_folder}"
         
         print(f"✓ Loaded {len(images)} images, tile size: {tile_width}x{tile_height}")
+        
+        # Analyze audio for music sync if enabled
+        tempo, beat_mask, beats = None, None, None
+        if music_sync_fade and audio_file and AUDIO_SUPPORT:
+            tempo, beat_mask, beats = analyze_audio_beats(audio_file, fps, duration)
+            if tempo is not None:
+                print(f"✓ Music sync enabled: {tempo:.1f} BPM")
+                if music_sync_scroll:
+                    # Adjust scroll speed to tempo (optional)
+                    beats_per_second = tempo / 60
+                    scroll_speed = max(5, int(scroll_speed * (beats_per_second / 2)))  # Sync to half-beats
+                    print(f"✓ Adjusted scroll speed to: {scroll_speed} px/sec")
         
     except Exception as e:
         return None, f"❌ Setup error: {str(e)}"
@@ -114,8 +166,22 @@ def generate_video(image_folder, video_width, video_height, images_per_row, rows
             for col in range(grid_cols):
                 cell = grid_state[row][col]
                 
-                # Random fade trigger
-                if cell['fade'] is None and random.random() < fade_probability + cell['fade_offset'] * fade_probability:
+                # Determine fade trigger based on music sync
+                should_fade = False
+                if music_sync_fade and beat_mask is not None:
+                    # Sync fades to musical beats
+                    current_frame = int(t * fps)
+                    if current_frame < len(beat_mask):
+                        # Trigger fade on beats with some randomness
+                        if beat_mask[current_frame] and random.random() < 0.3 + cell['fade_offset'] * 0.4:
+                            should_fade = True
+                else:
+                    # Original random fade logic
+                    if random.random() < fade_probability + cell['fade_offset'] * fade_probability:
+                        should_fade = True
+                
+                # Apply fade trigger
+                if cell['fade'] is None and should_fade:
                     cell['fade'] = 'out'
                     cell['progress'] = 0.0
                     cell['next_img'] = random.choice(images)
@@ -249,19 +315,35 @@ def generate_video(image_folder, video_width, video_height, images_per_row, rows
             output_path = tmp_file.name
         
         print(f"✓ Writing video to: {output_path}")
+        
+        # Add audio if provided
+        if audio_file and os.path.exists(audio_file):
+            from moviepy import AudioFileClip
+            try:
+                audio_clip = AudioFileClip(audio_file).subclip(0, min(duration, AudioFileClip(audio_file).duration))
+                clip = clip.set_audio(audio_clip)
+                print(f"✓ Added audio track: {os.path.basename(audio_file)}")
+            except Exception as e:
+                print(f"⚠️ Could not add audio: {e}")
+        
         clip.write_videofile(
             output_path, 
             fps=fps, 
             codec='libx264', 
             bitrate=quality_bitrate[quality],
-            audio=False,
+            audio=True if audio_file else False,
             logger=None
         )
         
         # Verify file was created
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
             file_size = os.path.getsize(output_path) / (1024 * 1024)  # MB
-            return output_path, f"✅ Video generated! ({len(images)} images, {file_size:.1f}MB)"
+            sync_info = ""
+            if music_sync_fade and beats is not None:
+                sync_info = f", 🎵 synced to {len(beats)} beats"
+            elif audio_file:
+                sync_info = ", 🎵 with audio"
+            return output_path, f"✅ Video generated! ({len(images)} images, {file_size:.1f}MB{sync_info})"
         else:
             return None, "❌ Video file was not created or is empty"
             
@@ -271,7 +353,8 @@ def generate_video(image_folder, video_width, video_height, images_per_row, rows
 # Create Gradio interface
 with gr.Blocks(title="Scrolling Image Wall Generator") as demo:
     gr.Markdown("# 🎬 Scrolling Image Wall Video Generator")
-    gr.Markdown("Create mesmerizing scrolling video walls with dynamic image transitions")
+    music_status = "🎵 with Music Sync" if AUDIO_SUPPORT else ""
+    gr.Markdown(f"Create mesmerizing scrolling video walls with dynamic image transitions {music_status}")
     
     with gr.Row():
         with gr.Column(scale=1):
@@ -304,6 +387,22 @@ with gr.Blocks(title="Scrolling Image Wall Generator") as demo:
                 scroll_direction = gr.Radio(["Horizontal", "Vertical"], value="Vertical", label="Scroll direction")
                 scroll_speed = gr.Slider(5, 500, value=25, step=5, label="Scroll speed (px/sec)", 
                                        info="Lower values = slower, more cinematic")
+            
+            # Music sync settings (only show if audio support is available)
+            if AUDIO_SUPPORT:
+                with gr.Group():
+                    gr.Markdown("### 🎵 Music Synchronization")
+                    audio_file = gr.Audio(type="filepath", label="Upload music file (MP3, WAV, etc.) - Optional")
+                    with gr.Row():
+                        music_sync_fade = gr.Checkbox(value=False, label="Sync fades to beats", 
+                                                    info="Image transitions follow musical rhythm")
+                        music_sync_scroll = gr.Checkbox(value=False, label="Sync scroll to tempo", 
+                                                      info="Adjust scroll speed to match BPM")
+            else:
+                # Placeholder when audio support not available
+                audio_file = gr.State(None)
+                music_sync_fade = gr.State(False)
+                music_sync_scroll = gr.State(False)
             
             # Fade effects
             with gr.Group():
@@ -347,7 +446,7 @@ with gr.Blocks(title="Scrolling Image Wall Generator") as demo:
         inputs=[
             image_folder, video_width, video_height, images_per_row, rows, padding,
             scroll_speed, scroll_direction, fade_probability, fade_randomness, fade_duration, 
-            black_duration, duration, fps, quality
+            black_duration, duration, fps, quality, audio_file, music_sync_fade, music_sync_scroll
         ],
         outputs=[video_output, status_text]
     )
