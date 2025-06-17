@@ -848,6 +848,7 @@ class VideoGenerator:
         dynamic_image_count: bool = True,
         dynamic_fade_in_duration: float = 3.0,
         dynamic_fade_out_duration: float = 3.0,
+        adaptive_timing: bool = True,
         appearance_randomness: float = 0.8,
         transition_smoothness: float = 0.6
     ) -> Tuple[Optional[str], str]:
@@ -885,6 +886,27 @@ class VideoGenerator:
             # Initialize grid state
             grid_state = self._initialize_grid_state(images, grid_cols, grid_rows, fade_randomness)
             
+            # Calculate adaptive timing based on grid size
+            total_grid_cells = grid_rows * grid_cols
+            if adaptive_timing:
+                # Base timing for reference (6 images = 3 seconds)
+                base_cells = 6
+                base_duration = 3.0
+                
+                # Scale duration based on grid size (logarithmic scaling to avoid excessive times)
+                import math
+                adaptive_fade_in = dynamic_fade_in_duration * math.log(1 + total_grid_cells / base_cells) / math.log(1 + base_cells)
+                adaptive_fade_out = dynamic_fade_out_duration * math.log(1 + total_grid_cells / base_cells) / math.log(1 + base_cells)
+                
+                # Apply reasonable bounds (min 1s, max 20s)
+                adaptive_fade_in = max(1.0, min(20.0, adaptive_fade_in))
+                adaptive_fade_out = max(1.0, min(20.0, adaptive_fade_out))
+                
+                self.logger.info(f"Adaptive timing: {total_grid_cells} cells → fade-in: {adaptive_fade_in:.1f}s, fade-out: {adaptive_fade_out:.1f}s")
+            else:
+                adaptive_fade_in = dynamic_fade_in_duration
+                adaptive_fade_out = dynamic_fade_out_duration
+            
             def make_frame(t: float) -> np.ndarray:
                 """Generate a single frame at time t."""
                 scroll_offset_pixels = scroll_speed * t
@@ -896,10 +918,9 @@ class VideoGenerator:
                 )
                 
                 # Calculate dynamic visible image count (separate from cinematic fade)
-                total_grid_cells = grid_rows * grid_cols
                 visible_image_count = self.cinematic.get_dynamic_visible_image_count(
                     t, duration, dynamic_image_count, 
-                    dynamic_fade_in_duration, dynamic_fade_out_duration, easing_curve,
+                    adaptive_fade_in, adaptive_fade_out, easing_curve,
                     total_grid_cells, min_images=1
                 )
                 

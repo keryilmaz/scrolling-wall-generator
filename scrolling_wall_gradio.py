@@ -1,6 +1,9 @@
 """Main Gradio interface for the Immersive Room application."""
 
 import gradio as gr
+import json
+import os
+from datetime import datetime
 from video_generator import VideoGenerator
 from config import (
     DEFAULT_VIDEO_WIDTH, DEFAULT_VIDEO_HEIGHT, DEFAULT_IMAGES_PER_ROW, DEFAULT_ROWS,
@@ -12,6 +15,160 @@ from config import (
 # Initialize application state
 video_generator = VideoGenerator()
 
+# Preset management functions
+def save_preset(preset_name, image_folder, video_width, video_height, images_per_row, rows, padding,
+                scroll_speed, scroll_direction, fade_probability, fade_randomness, fade_duration, 
+                fade_duration_variance, black_duration, black_duration_variance, duration, fps, quality, 
+                blend_weight, fade_black_weight, flash_weight,
+                fade_in_enabled, fade_out_enabled, fade_in_duration, fade_out_duration, easing_curve,
+                dynamic_image_count, dynamic_fade_in_duration, dynamic_fade_out_duration, adaptive_timing, 
+                appearance_randomness, transition_smoothness):
+    """Save current settings as a preset"""
+    if not preset_name:
+        return "❌ Please enter a preset name"
+    
+    # Create presets directory if it doesn't exist
+    presets_dir = "presets"
+    if not os.path.exists(presets_dir):
+        os.makedirs(presets_dir)
+    
+    # Create preset data
+    preset_data = {
+        "name": preset_name,
+        "created": datetime.now().isoformat(),
+        "settings": {
+            "image_folder": image_folder,
+            "video_width": video_width,
+            "video_height": video_height,
+            "images_per_row": images_per_row,
+            "rows": rows,
+            "padding": padding,
+            "scroll_speed": scroll_speed,
+            "scroll_direction": scroll_direction,
+            "fade_probability": fade_probability,
+            "fade_randomness": fade_randomness,
+            "fade_duration": fade_duration,
+            "fade_duration_variance": fade_duration_variance,
+            "black_duration": black_duration,
+            "black_duration_variance": black_duration_variance,
+            "duration": duration,
+            "fps": fps,
+            "quality": quality,
+            "blend_weight": blend_weight,
+            "fade_black_weight": fade_black_weight,
+            "flash_weight": flash_weight,
+            "fade_in_enabled": fade_in_enabled,
+            "fade_out_enabled": fade_out_enabled,
+            "fade_in_duration": fade_in_duration,
+            "fade_out_duration": fade_out_duration,
+            "easing_curve": easing_curve,
+            "dynamic_image_count": dynamic_image_count,
+            "dynamic_fade_in_duration": dynamic_fade_in_duration,
+            "dynamic_fade_out_duration": dynamic_fade_out_duration,
+            "adaptive_timing": adaptive_timing,
+            "appearance_randomness": appearance_randomness,
+            "transition_smoothness": transition_smoothness
+        }
+    }
+    
+    # Save preset file
+    filename = f"{preset_name.replace(' ', '_').lower()}.json"
+    filepath = os.path.join(presets_dir, filename)
+    
+    try:
+        with open(filepath, 'w') as f:
+            json.dump(preset_data, f, indent=2)
+        return f"✅ Preset '{preset_name}' saved successfully!"
+    except Exception as e:
+        return f"❌ Error saving preset: {str(e)}"
+
+def get_available_presets():
+    """Get list of available presets"""
+    presets_dir = "presets"
+    if not os.path.exists(presets_dir):
+        return []
+    
+    presets = []
+    for filename in os.listdir(presets_dir):
+        if filename.endswith('.json'):
+            try:
+                with open(os.path.join(presets_dir, filename), 'r') as f:
+                    data = json.load(f)
+                    presets.append(data['name'])
+            except:
+                continue
+    
+    return sorted(presets)
+
+def load_preset(preset_name):
+    """Load settings from a preset"""
+    if not preset_name:
+        return [None] * 30 + ["Please select a preset"]
+    
+    presets_dir = "presets"
+    filename = f"{preset_name.replace(' ', '_').lower()}.json"
+    filepath = os.path.join(presets_dir, filename)
+    
+    try:
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+            settings = data['settings']
+            
+        return [
+            settings['image_folder'],
+            settings['video_width'],
+            settings['video_height'],
+            settings['images_per_row'],
+            settings['rows'],
+            settings['padding'],
+            settings['scroll_speed'],
+            settings['scroll_direction'],
+            settings['fade_probability'],
+            settings['fade_randomness'],
+            settings['fade_duration'],
+            settings.get('fade_duration_variance', 0.3),
+            settings['black_duration'],
+            settings.get('black_duration_variance', 0.2),
+            settings['duration'],
+            settings['fps'],
+            settings['quality'],
+            settings.get('blend_weight', 0.5),
+            settings.get('fade_black_weight', 0.35),
+            settings.get('flash_weight', 0.15),
+            settings.get('fade_in_enabled', True),
+            settings.get('fade_out_enabled', True),
+            settings.get('fade_in_duration', 2.0),
+            settings.get('fade_out_duration', 2.0),
+            settings.get('easing_curve', 'ease-in-out'),
+            settings.get('dynamic_image_count', False),
+            settings.get('dynamic_fade_in_duration', 3.0),
+            settings.get('dynamic_fade_out_duration', 3.0),
+            settings.get('adaptive_timing', False),
+            settings.get('appearance_randomness', 0.8),
+            settings.get('transition_smoothness', 0.6),
+            f"✅ Preset '{preset_name}' loaded successfully!"
+        ]
+    except Exception as e:
+        return [None] * 31 + [f"❌ Error loading preset: {str(e)}"]
+
+def delete_preset(preset_name):
+    """Delete a saved preset"""
+    if not preset_name:
+        return "❌ Please select a preset to delete", gr.update(choices=get_available_presets())
+    
+    presets_dir = "presets"
+    filename = f"{preset_name.replace(' ', '_').lower()}.json"
+    filepath = os.path.join(presets_dir, filename)
+    
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            return f"✅ Preset '{preset_name}' deleted successfully!", gr.update(choices=get_available_presets())
+        else:
+            return f"❌ Preset '{preset_name}' not found", gr.update(choices=get_available_presets())
+    except Exception as e:
+        return f"❌ Error deleting preset: {str(e)}", gr.update(choices=get_available_presets())
+
 # Create Gradio interface
 with gr.Blocks(title="Immersive Room") as demo:
     gr.Markdown("# 🎬 Immersive Room - Cinematic Transitions")
@@ -19,6 +176,29 @@ with gr.Blocks(title="Immersive Room") as demo:
     
     with gr.Row():
         with gr.Column(scale=1):
+            # Preset management
+            with gr.Group():
+                gr.Markdown("### 💾 Presets")
+                with gr.Row():
+                    preset_dropdown = gr.Dropdown(
+                        choices=get_available_presets(),
+                        label="Select preset",
+                        interactive=True
+                    )
+                    load_preset_btn = gr.Button("📂 Load", size="sm")
+                
+                with gr.Row():
+                    preset_name_input = gr.Textbox(
+                        label="New preset name",
+                        placeholder="Enter preset name"
+                    )
+                    save_preset_btn = gr.Button("💾 Save", size="sm")
+                
+                with gr.Row():
+                    delete_preset_btn = gr.Button("🗑️ Delete Selected", size="sm", variant="stop")
+                
+                preset_status = gr.Textbox(label="Preset status", interactive=False)
+            
             # Input settings
             with gr.Group():
                 gr.Markdown("### 📁 Input Settings")
@@ -125,6 +305,12 @@ with gr.Blocks(title="Immersive Room") as demo:
                                                          label="Dynamic Fade Out Duration (sec)",
                                                          info="Time to remove all images from scene")
                 
+                adaptive_timing = gr.Checkbox(
+                    value=True,
+                    label="Adaptive Timing",
+                    info="Automatically adjust timing based on grid size - more images = longer duration"
+                )
+                
                 with gr.Row():
                     appearance_randomness = gr.Slider(0.0, 1.0, value=0.8, step=0.05,
                                                     label="Appearance Randomness",
@@ -134,6 +320,7 @@ with gr.Blocks(title="Immersive Room") as demo:
                                                     info="How long each image takes to fade in/out")
                 
                 gr.Markdown("💡 **Dynamic Count**: Images appear/disappear with separate timing from opacity fade")
+                gr.Markdown("💡 **Adaptive Timing**: Automatically scales duration based on grid size - 6 images = 3s, 54 images = ~7s, 390 images = ~12s")
                 gr.Markdown("💡 **Randomness**: 0.8 = mostly random with slight center bias, 1.0 = completely random")
                 gr.Markdown("💡 **Easing**: ease_in_out = smooth start & end, ease_in = slow start, ease_out = slow end, linear = constant speed")
             
@@ -170,27 +357,88 @@ with gr.Blocks(title="Immersive Room") as demo:
             fade_duration_variance, black_duration, black_duration_variance, duration, fps, quality, 
             blend_weight, fade_black_weight, flash_weight,
             fade_in_enabled, fade_out_enabled, fade_in_duration, fade_out_duration, easing_curve,
-            dynamic_image_count, dynamic_fade_in_duration, dynamic_fade_out_duration, appearance_randomness, transition_smoothness
+            dynamic_image_count, dynamic_fade_in_duration, dynamic_fade_out_duration, adaptive_timing, appearance_randomness, transition_smoothness
         ],
-        outputs=[video_output, status_text]
+        outputs=[video_output, status_text],
+        api_name="generate_video",
+        show_progress=True
+    )
+    
+    # Preset event handlers
+    save_preset_btn.click(
+        fn=save_preset,
+        inputs=[
+            preset_name_input, image_folder, video_width, video_height, images_per_row, rows, padding,
+            scroll_speed, scroll_direction, fade_probability, fade_randomness, fade_duration, 
+            fade_duration_variance, black_duration, black_duration_variance, duration, fps, quality, 
+            blend_weight, fade_black_weight, flash_weight,
+            fade_in_enabled, fade_out_enabled, fade_in_duration, fade_out_duration, easing_curve,
+            dynamic_image_count, dynamic_fade_in_duration, dynamic_fade_out_duration, adaptive_timing, 
+            appearance_randomness, transition_smoothness
+        ],
+        outputs=preset_status
+    ).then(
+        fn=lambda: gr.update(choices=get_available_presets()),
+        outputs=preset_dropdown
+    )
+    
+    load_preset_btn.click(
+        fn=load_preset,
+        inputs=preset_dropdown,
+        outputs=[
+            image_folder, video_width, video_height, images_per_row, rows, padding,
+            scroll_speed, scroll_direction, fade_probability, fade_randomness, fade_duration, 
+            fade_duration_variance, black_duration, black_duration_variance, duration, fps, quality, 
+            blend_weight, fade_black_weight, flash_weight,
+            fade_in_enabled, fade_out_enabled, fade_in_duration, fade_out_duration, easing_curve,
+            dynamic_image_count, dynamic_fade_in_duration, dynamic_fade_out_duration, adaptive_timing, 
+            appearance_randomness, transition_smoothness, preset_status
+        ]
+    )
+    
+    delete_preset_btn.click(
+        fn=delete_preset,
+        inputs=preset_dropdown,
+        outputs=[preset_status, preset_dropdown]
     )
 
 # Launch the app
 if __name__ == "__main__":
     import os
+    import sys
+    
     # Try different ports if the default is busy
-    ports_to_try = [7860, 7861, 7862, 8080, 8081]
+    ports_to_try = [7777, 7860, 7861, 7862, 8080, 8081]
     port = int(os.environ.get("GRADIO_SERVER_PORT", DEFAULT_SERVER_PORT))
     if port not in ports_to_try:
         ports_to_try.insert(0, port)
     
     for try_port in ports_to_try:
         try:
-            demo.launch(server_name=DEFAULT_SERVER_HOST, server_port=try_port, share=False)
+            print(f"Attempting to start server on port {try_port}...")
+            demo.queue(  # Enable queue for better stability
+                concurrency_count=3,
+                max_size=20
+            ).launch(
+                server_name=DEFAULT_SERVER_HOST, 
+                server_port=try_port, 
+                share=False,
+                max_threads=10,
+                show_error=True,
+                quiet=False,
+                prevent_thread_lock=True  # Prevent thread locking issues
+            )
             break
         except OSError as e:
             if "Cannot find empty port" in str(e):
                 print(f"Port {try_port} is busy, trying next...")
                 continue
             else:
+                print(f"Error: {e}")
                 raise
+        except KeyboardInterrupt:
+            print("\nShutting down gracefully...")
+            sys.exit(0)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            raise

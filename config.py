@@ -71,7 +71,7 @@ SUPPORTED_IMAGE_FORMATS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
 
 # Server settings
 DEFAULT_SERVER_HOST = "127.0.0.1"
-DEFAULT_SERVER_PORT = 8085
+DEFAULT_SERVER_PORT = 7777
 
 # Audio processing settings
 SKIP_AUDIO_PROCESSING = False  # Set to True to skip audio entirely for faster processing
