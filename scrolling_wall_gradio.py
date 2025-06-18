@@ -417,7 +417,6 @@ if __name__ == "__main__":
         try:
             print(f"Attempting to start server on port {try_port}...")
             demo.queue(  # Enable queue for better stability
-                concurrency_count=3,
                 max_size=20
             ).launch(
                 server_name=DEFAULT_SERVER_HOST, 
