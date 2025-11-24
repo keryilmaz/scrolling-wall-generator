@@ -8,5 +8,9 @@ moviepy>=2.0.0
 imageio>=2.9.0
 imageio-ffmpeg>=0.4.0
 
+# Audio processing (for music sync feature)
+librosa>=0.10.0
+soundfile>=0.12.0  # Required by librosa
+
 # Optional but recommended
 tqdm>=4.65.0  # Progress bars for MoviePy
